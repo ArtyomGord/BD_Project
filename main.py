@@ -303,8 +303,9 @@ async def generate_ways(n: int):
 async def generate_routes(n: int):
     index = 0
     while index != n:
-        if SESSION.query(model.TransportType).filter(model.TransportType._id_==index).first() is not None:
-            if SESSION.query(model.Way).filter(model.Way._id_==index).first() is not None:
+        # (route.id == index) && (route.tr_id = transport.id) 
+        if SESSION.query(model.TransportType, model.Route).filter(model.TransportType._id_==model.Route.transport_type_id and model.Route._id_==index).first() is not None:
+            if SESSION.query(model.Way, model.Route).filter(model.Way._id_==model.Route.way_id and model.Route._id_==index).first() is not None:
                 if SESSION.query(model.Route).filter(model.Route._id_==index).first() is not None:
                     index += 1
                     n += 1
@@ -312,16 +313,16 @@ async def generate_routes(n: int):
             else: return HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Way ID limit reached")
         else: return HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Transport ID limit reached")
         
-        obj = model.Route(
+        generated_route = model.Route(
             _id_=index,
-            transport_type_id=randint(1, 100),
-            way_id=randint(1, 100),
+            transport_type_id=randint(1, 99),
+            way_id=randint(1, 99), 
             route_number=randint(1, 100),
             passengers_count=randint(0, 50),
             car_count_on_route=randint(0, 200),
             travel_fee=round(uniform(100, 1000), 2)
         )
-        SESSION.add(obj)
+        SESSION.add(generated_route)
         SESSION.commit()
         index += 1
     return
