@@ -2,7 +2,8 @@ import model
 import sessions
 from fastapi import FastAPI, HTTPException, status
 from fastapi import Query
-
+from random import randint, uniform
+from faker import Faker
 
 def create_BD():
     engine = sessions.connect_to_base()
@@ -246,3 +247,81 @@ async def delete_route(route_id: int):
         SESSION.commit()
         return f"Route with ID {obj._id_} deleted"
     return HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="ID not found")
+
+
+
+
+
+# ------------------------------------------------------------------------------------
+# Data generation script
+
+
+
+fake = Faker()
+
+@APP.post("/generate_transports", tags=["transport"])
+async def generate_transports(n: int):
+    index = 0
+    while index != n:
+        if SESSION.query(model.TransportType).filter(model.TransportType._id_==index).first() is not None:
+            index += 1
+            n += 1
+            continue
+        obj = model.TransportType(
+            _id_=index,
+            transport_name=fake.word(),
+            car_count_in_park=randint(1, 100),
+            average_speed=round(uniform(10, 70), 2),
+            fuel_usage=round(uniform(5, 20), 2)
+        )
+        SESSION.add(obj)
+        SESSION.commit()
+        index += 1
+    return 
+
+@APP.post("/generate_ways", tags=["way"])
+async def generate_ways(n: int):
+    index = 0
+    while index != n:
+        if SESSION.query(model.Way).filter(model.Way._id_==index).first() is not None:
+            index += 1
+            n += 1
+            continue
+        obj = model.Way(
+            _id_=index,
+            start=fake.city(),
+            destination=fake.city(),
+            stops_count=randint(5, 50),
+            distance=round(uniform(10, 500), 2)
+        )
+        SESSION.add(obj)
+        SESSION.commit()
+        index += 1
+    return 
+
+@APP.post("/generate_routes", tags=["route"])
+async def generate_routes(n: int):
+    index = 0
+    while index != n:
+        if SESSION.query(model.TransportType).filter(model.TransportType._id_==index).first() is not None:
+            if SESSION.query(model.Way).filter(model.Way._id_==index).first() is not None:
+                if SESSION.query(model.Route).filter(model.Route._id_==index).first() is not None:
+                    index += 1
+                    n += 1
+                    continue
+            else: return HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Way ID limit reached")
+        else: return HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Transport ID limit reached")
+        
+        obj = model.Route(
+            _id_=index,
+            transport_type_id=randint(1, 100),
+            way_id=randint(1, 100),
+            route_number=randint(1, 100),
+            passengers_count=randint(0, 50),
+            car_count_on_route=randint(0, 200),
+            travel_fee=round(uniform(100, 1000), 2)
+        )
+        SESSION.add(obj)
+        SESSION.commit()
+        index += 1
+    return
