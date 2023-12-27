@@ -326,3 +326,62 @@ async def generate_routes(n: int):
         SESSION.commit()
         index += 1
     return
+
+
+
+
+
+# -------------------------------------------------------------------------
+# REQUESTS
+
+
+# JOIN
+# table1.join(table2, table1.param == table2.param)
+
+@APP.get("/transport_and_way_join", tags=["requests"])
+async def get_transport_and_way():
+    transport_and_way_query = SESSION.query(model.TransportType).join(model.Way, 
+        model.TransportType._id_ == model.Way._id_)
+    return transport_and_way_query.all()
+
+
+
+# SELECT
+
+@APP.get("/select_from_transports", tags=["requests"])
+async def get_transports_where(speed: float = 0, fuel_usage: float = 10):
+    transport_query = SESSION.query(model.TransportType).filter(
+        (model.TransportType.average_speed > speed)
+        & (model.TransportType.fuel_usage < fuel_usage)
+    )
+    return transport_query.all()
+
+
+
+# UPDATE
+
+@APP.put("/update_actors_rank", tags=["requests"])
+async def update_way_distance(
+        stops_count: int = Query(..., description="input stops_count"),
+        distance: float = Query(..., description="input distance")
+    ):
+    way_query = SESSION.query(model.Way).filter(model.Way.stops_count > stops_count).update({"distance": distance})
+    SESSION.commit()
+
+
+
+# SORT
+    
+@APP.get("/sort_routes", tags=["requests"])
+async def sort_routes_by_travel_fee():
+    route_query = SESSION.query(model.Route).order_by(model.Route.travel_fee)
+    return route_query.all()
+
+
+# GROUP BY
+
+@APP.get("/group_way_by_start_and_destination", tags=["requests"])
+async def group_ways():
+    way_query = SESSION.query(model.Way.start, model.Way.destination).group_by(
+        model.Way.start, model.Way.destination).all()
+    return [{"start": start, "destination": destination} for start, destination in way_query]
